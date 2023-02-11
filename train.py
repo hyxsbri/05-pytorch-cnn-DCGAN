@@ -16,7 +16,8 @@ import matplotlib.pyplot as plt
 from torchvision import transforms
 
 def train(args):
-    ## 트레이닝 파라메터 설정하기
+    
+    ## 트레이닝 파라미터 설정
     mode = args.mode
     train_continue = args.train_continue
 
@@ -122,6 +123,8 @@ def train(args):
             netD.train()
 
             loss_G_train = []
+            
+            # Discriminator - 2 개의 input(original x, Generator 에 의해 생성된 fake x)
             loss_D_real_train = []
             loss_D_fake_train = []
 
@@ -137,7 +140,11 @@ def train(args):
                 optimD.zero_grad()
 
                 pred_real = netD(label)
+                # True 값
                 pred_fake = netD(output.detach())
+                # Fake 값, Discriminator 에서 propagation 되는 backward 값이 generator 에 넘어가지 않도록
+                # detach 로 연결 끊어줌, Discriminator 에 대해서만 update 진행
+
 
                 loss_D_real = fn_loss(pred_real, torch.ones_like(pred_real))
                 loss_D_fake = fn_loss(pred_fake, torch.zeros_like(pred_fake))
@@ -257,12 +264,14 @@ def test(args):
 
         init_weights(netG, init_type='normal', init_gain=0.02)
         init_weights(netD, init_type='normal', init_gain=0.02)
+        # Generator 와 Discriminator network 커널 initialize
 
     ## 손실함수 정의하기
     # fn_loss = nn.BCEWithLogitsLoss().to(device)
     # fn_loss = nn.MSELoss().to(device)
 
     fn_loss = nn.BCELoss().to(device)
+    # GAN - Binary cross entropy 손실함수 사용
 
     ## Optimizer 설정하기
     optimG = torch.optim.Adam(netG.parameters(), lr=lr, betas=(0.5, 0.999))
@@ -278,12 +287,13 @@ def test(args):
     ## 네트워크 학습시키기
     st_epoch = 0
 
-    # TRAIN MODE
+    # TEST MODE
     if mode == "test":
         netG, netD, optimG, optimD, st_epoch = load(ckpt_dir=ckpt_dir, netG=netG, netD=netD, optimG=optimG, optimD=optimD)
 
         with torch.no_grad():
             netG.eval()
+            # Generator 모델만 evaluation 에 사용
 
             input = torch.randn(batch_size, 100, 1, 1).to(device)
             output = netG(input)
